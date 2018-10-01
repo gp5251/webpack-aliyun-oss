@@ -12,7 +12,7 @@ $ npm i webpack-aliyun-oss -S
 Options
 ------------------------
 
-- `from`: 从哪里取文件上传，默认为output.path。支持类似gulp.src的glob方法，如'./build/**', 可以为glob字符串或者数组。
+- `from`: 从哪里取文件上传，默认为output.path下所有的文件。支持类似gulp.src的glob方法，如'./build/**', 可以为glob字符串或者数组。
 - `dist`: 上传到哪个目录下，默认为根目录。
 - `region`: 阿里云上传区域
 - `accessKeyId`: 阿里云的授权accessKeyId
