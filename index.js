@@ -27,7 +27,6 @@ class WebpackAliyunOss {
 
             const outputPath = compiler.options.output.path;
             const splitToken = this.config.splitToken || '/' + outputPath.split('/').pop() + '/';
-            const files = this.getFiles(from);
 
             const {
                 dist,
@@ -48,6 +47,7 @@ class WebpackAliyunOss {
                 bucket
             });
 
+            const files = this.getFiles(from);
             if (files.length)
                 co(function*() {
                     let filePath, i = 0;
