@@ -1,6 +1,7 @@
+const fs        = require('fs');
+const path      = require('path');
 const oss       = require('ali-oss');
 const co        = require('co');
-const fs        = require('fs');
 const colors    = require('colors');
 const _         = require('lodash');
 const glob      = require("glob");
@@ -26,11 +27,11 @@ class WebpackAliyunOss {
             }
 
             const outputPath = compiler.options.output.path;
-            const splitToken = this.config.splitToken || '/' + outputPath.split('/').pop() + '/';
+            const splitToken = this.config.splitToken || path.sep + outputPath.split(path.sep).pop() + path.sep;
 
             const {
                 dist,
-                from = outputPath + (outputPath.endsWith('/')? '' : '/') + '**',
+                from = outputPath + (outputPath.endsWith(path.sep)? '' : path.sep) + '**',
                 setHeaders,
                 deleteOrigin,
 
