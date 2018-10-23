@@ -1,7 +1,7 @@
 # webpack-aliyun-oss
-A webpack plugin to upload assets to aliyun oss
+A webpack(>=4) plugin to upload assets to aliyun oss
 
-一个webpack插件，上传资源到阿里云cdn
+一个webpack4插件，上传资源到阿里云cdn
 
 Install
 ------------------------
