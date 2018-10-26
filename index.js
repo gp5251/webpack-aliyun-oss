@@ -94,6 +94,9 @@ class WebpackAliyunOss {
                             resolve()
                         })
                 })
+
+            verbose && console.log('no files to be uploaded');
+            return Promise.resolve();
         });
     }
 
