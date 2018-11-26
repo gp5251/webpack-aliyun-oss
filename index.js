@@ -16,9 +16,7 @@ class WebpackAliyunOss {
             deleteEmptyDir: false,
             timeout: 30 * 1000,
             setOssPath: null,
-            setHeaders(filePath) {
-                return {}
-            }
+            setHeaders: null
         }, options);
 
         this.configErrStr = this.checkOptions(options);
@@ -28,7 +26,7 @@ class WebpackAliyunOss {
         compiler.hooks.afterEmit.tapPromise('WebpackAliyunOss', (compilation) => {
             if (this.configErrStr) {
                 compilation.errors.push(new Error(this.configErrStr));
-                return;
+                return new Promise.resolve();
             }
 
             const outputPath = compiler.options.output.path;
@@ -68,7 +66,7 @@ class WebpackAliyunOss {
                         while (i++ < len) {
                             filePath = files.shift();
 
-                            let ossFilePath = (dist + (setOssPath ? setOssPath(filePath) : (filePath.split(splitToken)[1] || ''))).replace(/\/\/+/g, '/');
+                            let ossFilePath = (dist + (setOssPath && setOssPath(filePath) || (filePath.split(splitToken)[1] || ''))).replace(/\/\/+/g, '/');
 
                             if (typeof ossFilePath !== 'string') continue;
                             if (test) {
@@ -78,7 +76,7 @@ class WebpackAliyunOss {
 
                             let result = yield client.put(ossFilePath, filePath, {
                                 timeout,
-                                headers: setHeaders(filePath)
+                                headers: setHeaders && setHeaders(filePath) || {}
                             });
                             verbose && console.log(filePath.gray, '\nupload to '.green + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
 

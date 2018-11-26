@@ -25,8 +25,9 @@ Options
 - `verbose`: 是否显示上传日志，默认为true
 - `deletOrigin`: 上传完成是否删除原文件，默认false
 - `deleteEmptyDir`: 如果某个目录下的文件都上传到cdn了，是否删除此目录。deleteOrigin为true时候生效。默认false。
-- `setOssPath`: 自定义上传路径
-- `setHeaders`: 配置headers
+- `setOssPath`: 自定义上传路径的函数。不传，或者所传函数返回false则按默认路径上传。(默认为output.path下文件路径)
+- `setHeaders`: 配置headers的函数。不传，或者所传函数返回false则不设置header。
+- `test`: 测试，仅显示要上传的文件，但是不执行上传操作。默认false
 
 Example
 ------------------------
@@ -44,7 +45,7 @@ const webpackConfig = {
     bucket: 'your bucket',
     setOssPath(filePath) {
       // some operations to filePath
-      return '/new/path/flie.js';
+      return '/new/path/to/flie.js';
     },
     setHeaders(filePath) {
       // some operations to filePath
