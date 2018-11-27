@@ -23,10 +23,24 @@ class WebpackAliyunOss {
     }
 
     apply(compiler) {
+		const {
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket
+		} = this.config;
+
+		const client = oss({
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket
+		});
+
         if (compiler) {
-        	this.doWithWebpack(compiler);
+        	this.doWithWebpack(compiler, client);
         } else {
-            this.doWidthoutWebpack();
+            this.doWidthoutWebpack(client);
         }
     }
 
@@ -49,19 +63,7 @@ class WebpackAliyunOss {
 				timeout,
 				verbose,
 				test,
-
-				region,
-				accessKeyId,
-				accessKeySecret,
-				bucket
 			} = this.config;
-
-			const client = oss({
-				region,
-				accessKeyId,
-				accessKeySecret,
-				bucket
-			});
 
 			const files = this.getFiles(from);
 
@@ -76,7 +78,6 @@ class WebpackAliyunOss {
 
 							let ossFilePath = (dist + (setOssPath && setOssPath(filePath) || (filePath.split(splitToken)[1] || ''))).replace(/\/\/+/g, '/');
 
-							if (typeof ossFilePath !== 'string') continue;
 							if (test) {
 								console.log(filePath.gray, '\n is ready to upload to '.green + ossFilePath);
 								continue;
@@ -106,12 +107,58 @@ class WebpackAliyunOss {
 		});
     }
 
-    doWidthoutWebpack() {
-		if (this.configErrStr) {
-			return Promise.reject(new Error(this.configErrStr));
-		}
+    doWidthoutWebpack(client) {
+		if (this.configErrStr) return Promise.reject(new Error(this.configErrStr));
 
-		//
+		const {
+			dist,
+			from,
+			setHeaders,
+			deleteOrigin,
+			deleteEmptyDir,
+			setOssPath,
+			timeout,
+			verbose,
+			test,
+		} = this.config;
+
+		const files = this.getFiles(from);
+
+		if (files.length)
+			return new Promise((resolve, reject) => {
+				const o = this;
+				co(function* () {
+					let filePath, i = 0, len = files.length;
+					while (i++ < len) {
+						filePath = files.shift();
+						let ossFilePath = (dist + (setOssPath ? setOssPath(filePath) : '')).replace(/\/\/+/g, '/');
+
+						if (test) {
+							console.log(filePath.gray, '\n is ready to upload to '.green + ossFilePath);
+							continue;
+						}
+
+						let result = yield client.put(ossFilePath, filePath, {
+							timeout,
+							headers: setHeaders && setHeaders(filePath) || {}
+						});
+						verbose && console.log(filePath.gray, '\nupload to '.green + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
+
+						if (deleteOrigin) {
+							fs.unlinkSync(filePath);
+							if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
+								o.deleteEmptyDir(filePath);
+						}
+					}
+				})
+					.then(resolve, err => {
+						console.info('failed to upload to ali oss'.red, `${err.name}-${err.code}: ${err.message}`)
+						reject()
+					})
+			})
+
+		verbose && console.log('no files to be uploaded');
+		return Promise.resolve();
     }
 
     getFiles(exp) {
