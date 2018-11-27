@@ -26,7 +26,7 @@ class WebpackAliyunOss {
         compiler.hooks.afterEmit.tapPromise('WebpackAliyunOss', (compilation) => {
             if (this.configErrStr) {
                 compilation.errors.push(new Error(this.configErrStr));
-                return new Promise.resolve();
+                return Promise.resolve();
             }
 
             const outputPath = compiler.options.output.path;
