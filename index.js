@@ -169,13 +169,16 @@ class WebpackAliyunOss {
 		let errStr = '';
 
 		if (!region) errStr += '\nregion not specified';
-		if (!accessKeyId) errStr += '\naccessKeyId not specified'
-		if (!accessKeySecret) errStr += '\naccessKeySecret not specified'
-		if (!bucket) errStr += '\nbucket not specified'
+		if (!accessKeyId) errStr += '\naccessKeyId not specified';
+		if (!accessKeySecret) errStr += '\naccessKeySecret not specified';
+		if (!bucket) errStr += '\nbucket not specified';
 
-		let fromType = typeof from;
-		if (['undefined', 'string'].indexOf(fromType) === -1 && !Array.isArray(from))
-			errStr += '\nfrom should be string or an array'
+		if (Array.isArray(from)) {
+			if (from.some(g => typeof g !== 'string')) errStr += '\neach item in from should be a glob string';
+		} else{
+			let fromType = typeof from;
+			if (['undefined', 'string'].indexOf(fromType) === -1) errStr += '\nfrom should be string or array';
+		}
 
 		return errStr;
 	}

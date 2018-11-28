@@ -1,6 +1,6 @@
 {
   "name": "webpack-aliyun-oss",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "index.js",
   "author": "paul",
   "description": "a webpack plugin to upload assets to aliyun oss, can be used with or without webpack.",

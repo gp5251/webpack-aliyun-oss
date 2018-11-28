@@ -1,7 +1,7 @@
 # webpack-aliyun-oss
 A webpack(>=4) plugin to upload assets to aliyun oss, u can use it with or without webpack.
 
-一个webpack4插件，上传资源到阿里云cdn。可以作为webpack插件使用，也可独立使用
+一个webpack4插件，上传资源到阿里云cdn。可以作为webpack插件使用，也可独立使用(从0.1.0开始支持)
 
 - 默认按output.path (webpack.config.js) 里的文件路径上传到oss，需要指定上传根目录(dist)。
 - 也可以通过`setOssPath`来配置不同的上传路径。
@@ -16,7 +16,9 @@ $ npm i webpack-aliyun-oss -D
 Options
 ------------------------
 
-- `from`: 上传哪些文件，默认为output.path下所有的文件。支持类似gulp.src的glob方法，如'./build/**', 可以为glob字符串或者数组。
+- `from`: 上传哪些文件，支持类似gulp.src的glob方法，如'./build/**', 可以为glob字符串或者数组。
+    - 作为插件使用时：可选，默认为output.path下所有的文件。
+    - 独立使用时：必须指定。
 - `dist`: 上传到oss哪个目录下，默认为根目录。
 - `region`: 阿里云上传区域
 - `accessKeyId`: 阿里云的授权accessKeyId
