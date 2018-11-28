@@ -1,9 +1,9 @@
 {
   "name": "webpack-aliyun-oss",
-  "version": "0.0.7",
+  "version": "0.1.0",
   "main": "index.js",
   "author": "paul",
-  "description": "a webpack plugin to upload assets to aliyun oss",
+  "description": "a webpack plugin to upload assets to aliyun oss, can be used with or without webpack.",
   "repository": {
     "type": "git",
     "url": "https://github.com/gp5251/webpack-aliyun-oss.git"

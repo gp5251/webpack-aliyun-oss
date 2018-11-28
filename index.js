@@ -23,24 +23,10 @@ class WebpackAliyunOss {
     }
 
     apply(compiler) {
-		const {
-			region,
-			accessKeyId,
-			accessKeySecret,
-			bucket
-		} = this.config;
-
-		const client = oss({
-			region,
-			accessKeyId,
-			accessKeySecret,
-			bucket
-		});
-
         if (compiler) {
-        	this.doWithWebpack(compiler, client);
+        	this.doWithWebpack(compiler);
         } else {
-            this.doWidthoutWebpack(client);
+            this.doWidthoutWebpack();
         }
     }
 
@@ -54,65 +40,36 @@ class WebpackAliyunOss {
 			const outputPath = compiler.options.output.path;
 
 			const {
-				dist,
 				from = outputPath + (outputPath.endsWith(path.sep) ? '' : path.sep) + '**',
-				setHeaders,
-				deleteOrigin,
-				deleteEmptyDir,
-				setOssPath,
-				timeout,
-				verbose,
-				test,
+				verbose
 			} = this.config;
 
 			const files = this.getFiles(from);
 
-			if (files.length)
-				return new Promise((resolve, reject) => {
-					const o = this;
-					const splitToken = path.sep + outputPath.split(path.sep).pop() + path.sep;
-					co(function* () {
-						let filePath, i = 0, len = files.length;
-						while (i++ < len) {
-							filePath = files.shift();
-
-							let ossFilePath = (dist + (setOssPath && setOssPath(filePath) || (filePath.split(splitToken)[1] || ''))).replace(/\/\/+/g, '/');
-
-							if (test) {
-								console.log(filePath.gray, '\n is ready to upload to '.green + ossFilePath);
-								continue;
-							}
-
-							let result = yield client.put(ossFilePath, filePath, {
-								timeout,
-								headers: setHeaders && setHeaders(filePath) || {}
-							});
-							verbose && console.log(filePath.gray, '\nupload to '.green + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
-
-							if (deleteOrigin) {
-								fs.unlinkSync(filePath);
-								if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
-									o.deleteEmptyDir(filePath);
-							}
-						}
-					})
-						.then(resolve, err => {
-							console.info('failed to upload to ali oss'.red, `${err.name}-${err.code}: ${err.message}`)
-							resolve()
-						})
-				})
-
-			verbose && console.log('no files to be uploaded');
-			return Promise.resolve();
+			if (files.length) return this.upload(files);
+			else {
+				verbose && console.log('no files to be uploaded');
+				return Promise.resolve();
+			}
 		});
     }
 
-    doWidthoutWebpack(client) {
+    doWidthoutWebpack() {
 		if (this.configErrStr) return Promise.reject(new Error(this.configErrStr));
 
+		const { from, verbose } = this.config;
+		const files = this.getFiles(from);
+
+		if (files.length) return this.upload(files, false);
+		else {
+			verbose && console.log('no files to be uploaded');
+			return Promise.resolve();
+		}
+    }
+
+    upload(files, inWebpack = true) {
 		const {
 			dist,
-			from,
 			setHeaders,
 			deleteOrigin,
 			deleteEmptyDir,
@@ -120,46 +77,55 @@ class WebpackAliyunOss {
 			timeout,
 			verbose,
 			test,
+
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket
 		} = this.config;
 
-		const files = this.getFiles(from);
+		const client = oss({
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket
+		});
 
-		if (files.length)
-			return new Promise((resolve, reject) => {
-				const o = this;
-				co(function* () {
-					let filePath, i = 0, len = files.length;
-					while (i++ < len) {
-						filePath = files.shift();
-						let ossFilePath = (dist + (setOssPath ? setOssPath(filePath) : '')).replace(/\/\/+/g, '/');
+		return new Promise((resolve, reject) => {
+			const o = this;
+			const splitToken = inWebpack ? path.sep + outputPath.split(path.sep).pop() + path.sep : '';
 
-						if (test) {
-							console.log(filePath.gray, '\n is ready to upload to '.green + ossFilePath);
-							continue;
-						}
+			co(function* () {
+				let filePath, i = 0, len = files.length;
+				while (i++ < len) {
+					filePath = files.shift();
 
-						let result = yield client.put(ossFilePath, filePath, {
-							timeout,
-							headers: setHeaders && setHeaders(filePath) || {}
-						});
-						verbose && console.log(filePath.gray, '\nupload to '.green + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
+					let ossFilePath = (dist + (setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || ''))).replace(/\/\/+/g, '/');
 
-						if (deleteOrigin) {
-							fs.unlinkSync(filePath);
-							if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
-								o.deleteEmptyDir(filePath);
-						}
+					if (test) {
+						console.log(filePath.gray, '\n is ready to upload to '.green + ossFilePath);
+						continue;
 					}
-				})
-					.then(resolve, err => {
-						console.info('failed to upload to ali oss'.red, `${err.name}-${err.code}: ${err.message}`)
-						reject()
-					})
-			})
 
-		verbose && console.log('no files to be uploaded');
-		return Promise.resolve();
-    }
+					let result = yield client.put(ossFilePath, filePath, {
+						timeout,
+						headers: setHeaders && setHeaders(filePath) || {}
+					});
+					verbose && console.log(filePath.gray, '\nupload to '.green + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
+
+					if (deleteOrigin) {
+						fs.unlinkSync(filePath);
+						if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
+							o.deleteEmptyDir(filePath);
+					}
+				}
+			})
+				.then(resolve, err => {
+					console.log('failed to upload to ali oss'.red, `${err.name}-${err.code}: ${err.message}`)
+					reject()
+				})
+		})
+	}
 
     getFiles(exp) {
         const _getFiles = function (exp) {
