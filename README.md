@@ -35,7 +35,7 @@ Example
 
 ##### 作为webpack插件使用
 ```javascript
-const WebpackAliyunOss = require('webpack-aliyun-oss')
+const WebpackAliyunOss = require('webpack-aliyun-oss');
 const webpackConfig = {
   // ... 省略其他
   plugins: [new WebpackAliyunOss({
@@ -62,7 +62,8 @@ const webpackConfig = {
 ##### 独立使用
 
 ```javascript
-const webpackAliyunOss = new WebpackAliyunOss({
+const WebpackAliyunOss = require('webpack-aliyun-oss');
+new WebpackAliyunOss({
     from: ['./build/**', '!./build/**/*.html'],
     dist: 'path/in/alioss',
     region: 'your region',
@@ -79,8 +80,5 @@ const webpackAliyunOss = new WebpackAliyunOss({
         'Cache-Control': 'max-age=31536000'
       }
     }
-});
-
-webpackAliyunOss.apply();
-
+}).apply(); 
 ```   
