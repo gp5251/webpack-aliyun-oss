@@ -1,15 +1,16 @@
 # webpack-aliyun-oss
-A webpack(>=4) plugin to upload assets to aliyun oss
+A webpack(>=4) plugin to upload assets to aliyun oss, u can use it with or without webpack.
 
-一个webpack4插件，上传资源到阿里云cdn
+一个webpack4插件，上传资源到阿里云cdn。可以作为webpack插件使用，也可独立使用
 
 - 默认按output.path (webpack.config.js) 里的文件路径上传到oss，需要指定上传根目录(dist)。
 - 也可以通过`setOssPath`来配置不同的上传路径。
+- 独立使用时请通过`setOssPath`指定上传路径, 否则将上传到oss根目录。
 
 Install
 ------------------------
 ```shell
-$ npm i webpack-aliyun-oss -S
+$ npm i webpack-aliyun-oss -D
 ```
 
 Options
@@ -32,8 +33,9 @@ Options
 Example
 ------------------------
 
+##### 作为webpack插件使用
 ```javascript
-const WebpackAliyunOss = require('webpack-aliyun-oss')
+const WebpackAliyunOss = require('webpack-aliyun-oss');
 const webpackConfig = {
   // ... 省略其他
   plugins: [new WebpackAliyunOss({
@@ -55,4 +57,28 @@ const webpackConfig = {
     }
   })]
 }
+```
+
+##### 独立使用
+
+```javascript
+const WebpackAliyunOss = require('webpack-aliyun-oss');
+new WebpackAliyunOss({
+    from: ['./build/**', '!./build/**/*.html'],
+    dist: 'path/in/alioss',
+    region: 'your region',
+    accessKeyId: 'your key',
+    accessKeySecret: 'your secret',
+    bucket: 'your bucket',
+    setOssPath(filePath) {
+      // some operations to filePath
+      return '/new/path/to/flie.js';
+    },
+    setHeaders(filePath) {
+      // some operations to filePath
+      return {
+        'Cache-Control': 'max-age=31536000'
+      }
+    }
+}).apply(); 
 ```   
