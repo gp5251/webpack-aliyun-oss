@@ -7,30 +7,30 @@ const _ = require('lodash');
 const glob = require("glob");
 
 class WebpackAliyunOss {
-    constructor(options) {
-        this.config = Object.assign({
-            test: false,
-            verbose: true,
-            dist: '',
-            deleteOrigin: false,
-            deleteEmptyDir: false,
-            timeout: 30 * 1000,
-            setOssPath: null,
-            setHeaders: null
-        }, options);
+	constructor(options) {
+		this.config = Object.assign({
+			test: false,
+			verbose: true,
+			dist: '',
+			deleteOrigin: false,
+			deleteEmptyDir: false,
+			timeout: 30 * 1000,
+			setOssPath: null,
+			setHeaders: null
+		}, options);
 
-        this.configErrStr = this.checkOptions(options);
-    }
+		this.configErrStr = this.checkOptions(options);
+	}
 
-    apply(compiler) {
-        if (compiler) {
-        	this.doWithWebpack(compiler);
-        } else {
-            this.doWidthoutWebpack();
-        }
-    }
+	apply(compiler) {
+		if (compiler) {
+			this.doWithWebpack(compiler);
+		} else {
+			this.doWidthoutWebpack();
+		}
+	}
 
-    doWithWebpack(compiler) {
+	doWithWebpack(compiler) {
 		compiler.hooks.afterEmit.tapPromise('WebpackAliyunOss', (compilation) => {
 			if (this.configErrStr) {
 				compilation.errors.push(new Error(this.configErrStr));
@@ -46,28 +46,28 @@ class WebpackAliyunOss {
 
 			const files = this.getFiles(from);
 
-			if (files.length) return this.upload(files);
+			if (files.length) return this.upload(files, true, outputPath);
 			else {
 				verbose && console.log('no files to be uploaded');
 				return Promise.resolve();
 			}
 		});
-    }
+	}
 
-    doWidthoutWebpack() {
+	doWidthoutWebpack() {
 		if (this.configErrStr) return Promise.reject(new Error(this.configErrStr));
 
 		const { from, verbose } = this.config;
 		const files = this.getFiles(from);
 
-		if (files.length) return this.upload(files, false);
+		if (files.length) return this.upload(files);
 		else {
 			verbose && console.log('no files to be uploaded');
 			return Promise.resolve();
 		}
-    }
+	}
 
-    upload(files, inWebpack = true) {
+	upload(files, inWebpack, outputPath='') {
 		const {
 			dist,
 			setHeaders,
@@ -127,58 +127,58 @@ class WebpackAliyunOss {
 		})
 	}
 
-    getFiles(exp) {
-        const _getFiles = function (exp) {
-            exp = exp[0] === '!' && exp.substr(1) || exp;
-            return glob.sync(exp, {nodir: true}).map(file => path.resolve(file))
-        }
+	getFiles(exp) {
+		const _getFiles = function (exp) {
+			exp = exp[0] === '!' && exp.substr(1) || exp;
+			return glob.sync(exp, {nodir: true}).map(file => path.resolve(file))
+		}
 
-        return Array.isArray(exp) ?
-            exp.reduce((prev, next) => {
-                return next[0] === '!' ?
-                    _.without(prev, ..._getFiles(next)) :
-                    _.union(prev, _getFiles(next));
-            }, _getFiles(exp[0])) :
-            _getFiles(exp);
-    }
+		return Array.isArray(exp) ?
+			exp.reduce((prev, next) => {
+				return next[0] === '!' ?
+					_.without(prev, ..._getFiles(next)) :
+					_.union(prev, _getFiles(next));
+			}, _getFiles(exp[0])) :
+			_getFiles(exp);
+	}
 
-    deleteEmptyDir(filePath) {
-        let dirname = path.dirname(filePath);
-        if (fs.existsSync(dirname) && fs.statSync(dirname).isDirectory()) {
-            fs.readdir(dirname, (err, files) => {
-                if (err) console.error(err);
-                else {
-                    if (!files.length) {
-                        fs.rmdir(dirname)
-                        this.config.verbose && console.log('empty directory deleted'.green, dirname)
-                    }
-                }
-            })
-        }
-    }
+	deleteEmptyDir(filePath) {
+		let dirname = path.dirname(filePath);
+		if (fs.existsSync(dirname) && fs.statSync(dirname).isDirectory()) {
+			fs.readdir(dirname, (err, files) => {
+				if (err) console.error(err);
+				else {
+					if (!files.length) {
+						fs.rmdir(dirname)
+						this.config.verbose && console.log('empty directory deleted'.green, dirname)
+					}
+				}
+			})
+		}
+	}
 
-    checkOptions(options = {}) {
-        const {
-            from,
-            region,
-            accessKeyId,
-            accessKeySecret,
-            bucket
-        } = options;
+	checkOptions(options = {}) {
+		const {
+			from,
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket
+		} = options;
 
-        let errStr = '';
+		let errStr = '';
 
-        if (!region) errStr += '\nregion not specified';
-        if (!accessKeyId) errStr += '\naccessKeyId not specified'
-        if (!accessKeySecret) errStr += '\naccessKeySecret not specified'
-        if (!bucket) errStr += '\nbucket not specified'
+		if (!region) errStr += '\nregion not specified';
+		if (!accessKeyId) errStr += '\naccessKeyId not specified'
+		if (!accessKeySecret) errStr += '\naccessKeySecret not specified'
+		if (!bucket) errStr += '\nbucket not specified'
 
-        let fromType = typeof from;
-        if (['undefined', 'string'].indexOf(fromType) === -1 && !Array.isArray(from))
-            errStr += '\nfrom should be string or an array'
+		let fromType = typeof from;
+		if (['undefined', 'string'].indexOf(fromType) === -1 && !Array.isArray(from))
+			errStr += '\nfrom should be string or an array'
 
-        return errStr;
-    }
+		return errStr;
+	}
 }
 
 module.exports = WebpackAliyunOss;
