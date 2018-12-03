@@ -129,6 +129,8 @@ class WebpackAliyunOss {
 
 	getFiles(exp) {
 		const _getFiles = function (exp) {
+			if (!exp || !exp.length) return [];
+
 			exp = exp[0] === '!' && exp.substr(1) || exp;
 			return glob.sync(exp, {nodir: true}).map(file => path.resolve(file))
 		}
