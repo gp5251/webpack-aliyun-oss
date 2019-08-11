@@ -32,6 +32,8 @@ Options
 - `setHeaders`: 配置headers的函数。接收参数为当前文件路径。不传，或者所传函数返回false则不设置header。
 - `test`: 测试，仅显示要上传的文件，但是不执行上传操作。默认false
 
+#### 注意: `accessKeyId, accessKeySecret` 很重要，注意保密!!!
+
 Example
 ------------------------
 
