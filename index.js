@@ -100,11 +100,10 @@ class WebpackAliyunOss {
 				while (i++ < len) {
 					filePath = files.shift();
 
-					let exp = new RegExp(path.sep + path.sep + '+', 'g');
-					let ossFilePath = (dist + (setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || ''))).replace(exp, path.sep);
+					let ossFilePath = (dist + (setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || '').replace(/\\/g, '/'))).replace(/\/\/+/g, '/');
 
 					if (test) {
-						console.log(filePath.gray, '\n is ready to upload to '.green + ossFilePath);
+						console.log(filePath.gray, '\nis ready to upload to '.green + ossFilePath);
 						continue;
 					}
 
