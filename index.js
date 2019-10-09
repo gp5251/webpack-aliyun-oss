@@ -2,9 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const oss = require('ali-oss');
 const co = require('co');
-const colors = require('colors');
 const _ = require('lodash');
 const glob = require("glob");
+const slash = require("slash");
+require('colors');
 
 class WebpackAliyunOss {
 	constructor(options) {
@@ -100,7 +101,7 @@ class WebpackAliyunOss {
 				while (i++ < len) {
 					filePath = files.shift();
 
-					let ossFilePath = (dist + (setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || '').replace(/\\/g, '/'))).replace(/\/\/+/g, '/');
+					let ossFilePath = path.join(slash(dist), slash(setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || '')));
 
 					if (test) {
 						console.log(filePath.gray, '\nis ready to upload to '.green + ossFilePath);
@@ -132,7 +133,7 @@ class WebpackAliyunOss {
 			if (!exp || !exp.length) return [];
 
 			exp = exp[0] === '!' && exp.substr(1) || exp;
-			return glob.sync(exp, {nodir: true}).map(file => path.resolve(file))
+			return glob.sync(exp, {nodir: true}).map(file => slash(path.resolve(file)))
 		}
 
 		return Array.isArray(exp) ?
