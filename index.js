@@ -38,10 +38,10 @@ class WebpackAliyunOss {
 				return Promise.resolve();
 			}
 
-			const outputPath = compiler.options.output.path;
+			const outputPath = slash(compiler.options.output.path);
 
 			const {
-				from = outputPath + (outputPath.endsWith(path.sep) ? '' : path.sep) + '**',
+				from = outputPath + (outputPath.endsWith('/') ? '' : '/') + '**',
 				verbose
 			} = this.config;
 
@@ -68,7 +68,7 @@ class WebpackAliyunOss {
 		}
 	}
 
-	upload(files, inWebpack, outputPath='') {
+	upload(files, inWebpack, outputPath = '') {
 		const {
 			dist,
 			setHeaders,
@@ -94,17 +94,17 @@ class WebpackAliyunOss {
 
 		return new Promise((resolve, reject) => {
 			const o = this;
-			const splitToken = inWebpack ? path.sep + outputPath.split(path.sep).pop() + path.sep : '';
+			const splitToken = inWebpack ? '/' + outputPath.split('/').pop() + '/' : '';
 
 			co(function* () {
 				let filePath, i = 0, len = files.length;
 				while (i++ < len) {
 					filePath = files.shift();
 
-					let ossFilePath = path.join(slash(dist), slash(setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || '')));
+					let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || ''))));
 
 					if (test) {
-						console.log(filePath.gray, '\nis ready to upload to '.green + ossFilePath);
+						console.log(filePath.blue, '\nis ready to upload to ' + ossFilePath.green);
 						continue;
 					}
 
@@ -112,7 +112,7 @@ class WebpackAliyunOss {
 						timeout,
 						headers: setHeaders && setHeaders(filePath) || {}
 					});
-					verbose && console.log(filePath.gray, '\nupload to '.green + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
+					verbose && console.log(filePath.blue, '\nupload to ' + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
 
 					if (deleteOrigin) {
 						fs.unlinkSync(filePath);
@@ -133,7 +133,7 @@ class WebpackAliyunOss {
 			if (!exp || !exp.length) return [];
 
 			exp = exp[0] === '!' && exp.substr(1) || exp;
-			return glob.sync(exp, {nodir: true}).map(file => slash(path.resolve(file)))
+			return glob.sync(exp, { nodir: true }).map(file => slash(path.resolve(file)))
 		}
 
 		return Array.isArray(exp) ?
@@ -152,8 +152,13 @@ class WebpackAliyunOss {
 				if (err) console.error(err);
 				else {
 					if (!files.length) {
-						fs.rmdir(dirname)
-						this.config.verbose && console.log('empty directory deleted'.green, dirname)
+						fs.rmdir(dirname, (err)=>{
+							if (err) {
+								console.log(err.red);
+							} else {
+								this.config.verbose && console.log('empty directory deleted'.green, dirname)
+							}
+						})
 					}
 				}
 			})
@@ -178,7 +183,7 @@ class WebpackAliyunOss {
 
 		if (Array.isArray(from)) {
 			if (from.some(g => typeof g !== 'string')) errStr += '\neach item in from should be a glob string';
-		} else{
+		} else {
 			let fromType = typeof from;
 			if (['undefined', 'string'].indexOf(fromType) === -1) errStr += '\nfrom should be string or array';
 		}
