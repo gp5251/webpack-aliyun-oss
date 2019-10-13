@@ -50,11 +50,11 @@ const webpackConfig = {
     accessKeySecret: 'your secret',
     bucket: 'your bucket',
     setOssPath(filePath) {
-      // some operations to filePath
+      // filePath为当前文件路径，函数应该返回路径+文件名，如/new/path/to/file.js，则最终上传路径为 path/in/alioss/new/path/to/file.js
       return '/new/path/to/file.js';
     },
     setHeaders(filePath) {
-      // some operations to filePath
+      // 定义当前文件header，可选
       return {
         'Cache-Control': 'max-age=31536000'
       }
