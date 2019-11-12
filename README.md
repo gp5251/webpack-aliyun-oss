@@ -30,6 +30,7 @@ Options
 - `deleteEmptyDir`: 如果某个目录下的文件都上传到cdn了，是否删除此目录。deleteOrigin为true时候生效。默认false。
 - `setOssPath`: 自定义上传路径的函数。接收参数为当前文件路径。不传，或者所传函数返回false则按默认路径上传。(默认为output.path下文件路径)
 - `setHeaders`: 配置headers的函数。接收参数为当前文件路径。不传，或者所传函数返回false则不设置header。
+- `buildRoot`: 构建目录名。如：build。独立使用时候需要。如果已传setOssPath可忽略。默认为空
 - `test`: 测试，仅显示要上传的文件，但是不执行上传操作。默认false
 
 #### 注意: `accessKeyId, accessKeySecret` 很重要，注意保密!!!
@@ -70,12 +71,13 @@ const WebpackAliyunOss = require('webpack-aliyun-oss');
 new WebpackAliyunOss({
     from: ['./build/**', '!./build/**/*.html'],
     dist: 'path/in/alioss',
+    buildRoot: 'build', // 构建目录，如果已传setOssPath，可忽略
     region: 'your region',
     accessKeyId: 'your key',
     accessKeySecret: 'your secret',
     bucket: 'your bucket',
     setOssPath(filePath) {
-      // some operations to filePath
+      // filePath为当前文件路径，函数应该返回路径+文件名，如/new/path/to/file.js，则最终上传路径为 path/in/alioss/new/path/to/file.js
       return '/new/path/to/file.js';
     },
     setHeaders(filePath) {

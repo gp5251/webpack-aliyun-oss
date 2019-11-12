@@ -13,6 +13,7 @@ class WebpackAliyunOss {
 			test: false,
 			verbose: true,
 			dist: '',
+			buildRoot: '',
 			deleteOrigin: false,
 			deleteEmptyDir: false,
 			timeout: 30 * 1000,
@@ -71,6 +72,7 @@ class WebpackAliyunOss {
 	upload(files, inWebpack, outputPath = '') {
 		const {
 			dist,
+			buildRoot,
 			setHeaders,
 			deleteOrigin,
 			deleteEmptyDir,
@@ -94,14 +96,14 @@ class WebpackAliyunOss {
 
 		return new Promise((resolve, reject) => {
 			const o = this;
-			const splitToken = inWebpack ? '/' + outputPath.split('/').pop() + '/' : '';
+			const splitToken = inWebpack ? '/' + outputPath.split('/').pop() + '/' : '/' + buildRoot + '/';
 
 			co(function* () {
 				let filePath, i = 0, len = files.length;
 				while (i++ < len) {
 					filePath = files.shift();
 
-					let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (inWebpack && splitToken && filePath.split(splitToken)[1] || ''))));
+					let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (splitToken && filePath.split(splitToken)[1] || ''))));
 
 					if (test) {
 						console.log(filePath.blue, '\nis ready to upload to ' + ossFilePath.green);
