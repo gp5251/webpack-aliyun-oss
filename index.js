@@ -114,6 +114,9 @@ class WebpackAliyunOss {
 						timeout,
 						headers: setHeaders && setHeaders(filePath) || {}
 					});
+
+					result.url = o.normalize(result.url);
+
 					verbose && console.log(filePath.blue, '\nupload to ' + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
 
 					if (deleteOrigin) {
@@ -124,7 +127,7 @@ class WebpackAliyunOss {
 				}
 			})
 				.then(resolve, err => {
-					console.log('failed to upload to ali oss'.red, `${err.name}-${err.code}: ${err.message}`)
+					console.log(`failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`.red)
 					reject()
 				})
 		})
@@ -145,6 +148,15 @@ class WebpackAliyunOss {
 					_.union(prev, _getFiles(next));
 			}, _getFiles(exp[0])) :
 			_getFiles(exp);
+	}
+
+	normalize(url) {
+		let tmpArr = url.split(/\/{2,}/);
+		if (tmpArr.length > 2) {
+			let [protocol, ...rest] = tmpArr;
+			url = protocol + '//' + rest.join('/');
+		}
+		return url;
 	}
 
 	deleteEmptyDir(filePath) {
