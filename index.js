@@ -3,7 +3,7 @@ const path = require('path');
 const oss = require('ali-oss');
 const co = require('co');
 const _ = require('lodash');
-const glob = require("glob");
+const globby = require("globby");
 const slash = require("slash");
 require('colors');
 
@@ -33,7 +33,7 @@ class WebpackAliyunOss {
 	}
 
 	doWithWebpack(compiler) {
-		compiler.hooks.afterEmit.tapPromise('WebpackAliyunOss', (compilation) => {
+		compiler.hooks.afterEmit.tapPromise('WebpackAliyunOss', async (compilation) => {
 			if (this.configErrStr) {
 				compilation.errors.push(new Error(this.configErrStr));
 				return Promise.resolve();
@@ -46,7 +46,7 @@ class WebpackAliyunOss {
 				verbose
 			} = this.config;
 
-			const files = this.getFiles(from);
+			const files = await this.getFiles(from);
 
 			if (files.length) return this.upload(files, true, outputPath);
 			else {
@@ -56,11 +56,11 @@ class WebpackAliyunOss {
 		});
 	}
 
-	doWidthoutWebpack() {
+	async doWidthoutWebpack() {
 		if (this.configErrStr) return Promise.reject(new Error(this.configErrStr));
 
 		const { from, verbose } = this.config;
-		const files = this.getFiles(from);
+		const files = await this.getFiles(from);
 
 		if (files.length) return this.upload(files);
 		else {
@@ -134,20 +134,21 @@ class WebpackAliyunOss {
 	}
 
 	getFiles(exp) {
-		const _getFiles = function (exp) {
-			if (!exp || !exp.length) return [];
+		return globby(Array.isArray(exp) ? exp : [exp], {cwd: process.cwd()});
+		// const _getFiles = function (exp) {
+		// 	if (!exp || !exp.length) return [];
 
-			exp = exp[0] === '!' && exp.substr(1) || exp;
-			return glob.sync(exp, { nodir: true }).map(file => slash(path.resolve(file)))
-		}
+		// 	exp = exp[0] === '!' && exp.substr(1) || exp;
+		// 	return glob.sync(exp, { nodir: true }).map(file => slash(path.resolve(file)))
+		// }
 
-		return Array.isArray(exp) ?
-			exp.reduce((prev, next) => {
-				return next[0] === '!' ?
-					_.without(prev, ..._getFiles(next)) :
-					_.union(prev, _getFiles(next));
-			}, _getFiles(exp[0])) :
-			_getFiles(exp);
+		// return Array.isArray(exp) ?
+		// 	exp.reduce((prev, next) => {
+		// 		return next[0] === '!' ?
+		// 			_.without(prev, ..._getFiles(next)) :
+		// 			_.union(prev, _getFiles(next));
+		// 	}, _getFiles(exp[0])) :
+		// 	_getFiles(exp);
 	}
 
 	normalize(url) {
