@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const oss = require('ali-oss');
 const co = require('co');
-const _ = require('lodash');
 const globby = require("globby");
 const slash = require("slash");
 require('colors');
@@ -13,7 +12,7 @@ class WebpackAliyunOss {
 			test: false,
 			verbose: true,
 			dist: '',
-			buildRoot: '',
+			buildRoot: '.',
 			deleteOrigin: false,
 			deleteEmptyDir: false,
 			timeout: 30 * 1000,
@@ -39,14 +38,14 @@ class WebpackAliyunOss {
 				return Promise.resolve();
 			}
 
-			const outputPath = slash(compiler.options.output.path);
+			const outputPath = path.resolve(slash(compiler.options.output.path));
 
 			const {
-				from = outputPath + (outputPath.endsWith('/') ? '' : '/') + '**',
+				from = outputPath + '/' + '**',
 				verbose
 			} = this.config;
 
-			const files = await this.getFiles(from);
+			const files = await globby(from);
 
 			if (files.length) return this.upload(files, true, outputPath);
 			else {
@@ -60,12 +59,12 @@ class WebpackAliyunOss {
 		if (this.configErrStr) return Promise.reject(new Error(this.configErrStr));
 
 		const { from, verbose } = this.config;
-		const files = await this.getFiles(from);
+		const files = await globby(from);
 
-		if (files.length) return this.upload(files);
+		if (files.length) return await this.upload(files);
 		else {
 			verbose && console.log('no files to be uploaded');
-			return Promise.resolve();
+			return Promise.resolve('no files to be uploaded');
 		}
 	}
 
@@ -94,10 +93,15 @@ class WebpackAliyunOss {
 			bucket
 		});
 
+		files = files.map(file => path.resolve(file))
+
 		return new Promise((resolve, reject) => {
 			const o = this;
-			const splitToken = inWebpack ? '/' + outputPath.split('/').pop() + '/' : '/' + buildRoot + '/';
+			const splitToken = inWebpack
+													? '/' + outputPath.split('/').slice(-2).join('/') + '/'
+													: '/' + path.resolve(buildRoot).split('/').slice(-2).join('/') + '/';
 
+			let cloneFiles = files.slice.call(files);
 			co(function* () {
 				let filePath, i = 0, len = files.length;
 				while (i++ < len) {
@@ -106,7 +110,7 @@ class WebpackAliyunOss {
 					let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (splitToken && filePath.split(splitToken)[1] || ''))));
 
 					if (test) {
-						console.log(filePath.blue, '\nis ready to upload to ' + ossFilePath.green);
+						console.log(filePath.blue, 'is ready to upload to ' + ossFilePath.green);
 						continue;
 					}
 
@@ -126,35 +130,17 @@ class WebpackAliyunOss {
 					}
 				}
 			})
-				.then(resolve, err => {
+				.then(() => { resolve(cloneFiles) }, err => {
 					console.log(`failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`.red)
 					reject()
 				})
 		})
 	}
 
-	getFiles(exp) {
-		return globby(Array.isArray(exp) ? exp : [exp], {cwd: process.cwd()});
-		// const _getFiles = function (exp) {
-		// 	if (!exp || !exp.length) return [];
-
-		// 	exp = exp[0] === '!' && exp.substr(1) || exp;
-		// 	return glob.sync(exp, { nodir: true }).map(file => slash(path.resolve(file)))
-		// }
-
-		// return Array.isArray(exp) ?
-		// 	exp.reduce((prev, next) => {
-		// 		return next[0] === '!' ?
-		// 			_.without(prev, ..._getFiles(next)) :
-		// 			_.union(prev, _getFiles(next));
-		// 	}, _getFiles(exp[0])) :
-		// 	_getFiles(exp);
-	}
-
 	normalize(url) {
-		let tmpArr = url.split(/\/{2,}/);
+		const tmpArr = url.split(/\/{2,}/);
 		if (tmpArr.length > 2) {
-			let [protocol, ...rest] = tmpArr;
+			const [protocol, ...rest] = tmpArr;
 			url = protocol + '//' + rest.join('/');
 		}
 		return url;
@@ -167,7 +153,7 @@ class WebpackAliyunOss {
 				if (err) console.error(err);
 				else {
 					if (!files.length) {
-						fs.rmdir(dirname, (err)=>{
+						fs.rmdir(dirname, (err) => {
 							if (err) {
 								console.log(err.red);
 							} else {
