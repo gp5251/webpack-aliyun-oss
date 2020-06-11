@@ -3,7 +3,7 @@ A webpack(>=4) plugin to upload assets to aliyun oss, u can use it with or witho
 
 一个webpack(>=4)插件，上传资源到阿里云oss。可以作为webpack插件使用，也可独立使用(从0.1.0开始支持)
 
-- 默认按output.path (webpack.config.js) 里的文件路径上传到oss，需要指定上传根目录(dist)。
+- 默认按output.path (webpack.config.js) 下面的文件路径上传到oss，需要指定上传根目录(dist)。
 - 也可以通过`setOssPath`来配置不同的上传路径。
 - 独立使用时请通过`setOssPath`指定上传路径, 否则将上传到`dist`指定的路径下。
 
@@ -51,7 +51,7 @@ const webpackConfig = {
     accessKeySecret: 'your secret',
     bucket: 'your bucket',
     setOssPath(filePath) {
-      // filePath为当前文件路径，函数应该返回路径+文件名，如/new/path/to/file.js，则最终上传路径为 path/in/alioss/new/path/to/file.js
+      // filePath为当前文件路径。函数应该返回路径+文件名。如果返回/new/path/to/file.js，则最终上传路径为 path/in/alioss/new/path/to/file.js
       return '/new/path/to/file.js';
     },
     setHeaders(filePath) {
@@ -77,7 +77,7 @@ new WebpackAliyunOss({
     accessKeySecret: 'your secret',
     bucket: 'your bucket',
     setOssPath(filePath) {
-      // filePath为当前文件路径，函数应该返回路径+文件名，如/new/path/to/file.js，则最终上传路径为 path/in/alioss/new/path/to/file.js
+      // filePath为当前文件路径。函数应该返回路径+文件名。如果返回/new/path/to/file.js，则最终上传路径为 path/in/alioss/new/path/to/file.js
       return '/new/path/to/file.js';
     },
     setHeaders(filePath) {

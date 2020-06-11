@@ -27,7 +27,7 @@ class WebpackAliyunOss {
 		if (compiler) {
 			this.doWithWebpack(compiler);
 		} else {
-			this.doWidthoutWebpack();
+			return this.doWidthoutWebpack();
 		}
 	}
 
