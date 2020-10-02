@@ -145,7 +145,7 @@ class WebpackAliyunOss {
 			console.log(`failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`.red)
 		}
 
-		verbose && console.log('files ignored'.blue, this.filesIgnored);
+		verbose && this.filesIgnored.length && console.log('files ignored'.blue, this.filesIgnored);
 	}
 
 	fileExists(filepath) {
@@ -154,7 +154,6 @@ class WebpackAliyunOss {
 				return result.res.status == 200
 			}).catch((e) => {
 				if (e.code == 'NoSuchKey') {
-					// console.log(filepath, 'not exist', e);
 					return false
 				}
 			})
