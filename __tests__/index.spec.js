@@ -25,16 +25,15 @@ describe('webpack-aliyun-oss', () => {
 		const wpa = createWpaInstance({
 			from: ['./dist/**', '!./dist/*.html'], 
 			buildRoot: './dist'
-		});
-		const p = await wpa.doWidthoutWebpack();
-		console.log('files', p);
-		expect(p.length).toBe(3);
+		}, false);
+		await wpa.doWidthoutWebpack();
+		expect(wpa.filesUploaded.length).toBe(3);
 	});
 
 	it('can upload files in webpack', async () => {
 		const wpa = createWpaInstance({
 			from: ['./dist/**', '!./dist/*.(html|txt)']
-		});
+		}, false);
 
 		const re = await runWebapck({
 			mode: 'production',
@@ -46,6 +45,18 @@ describe('webpack-aliyun-oss', () => {
 		})
 
 		expect(re).toBe('done');
+	});
+
+	it('can ignore files already exists', async () => {
+		// expect.assertions(1);
+		const wpa = createWpaInstance({
+			from: ['./dist/**', '!./dist/*.html'],
+			buildRoot: './dist',
+			overwrite: false
+		}, false);
+		await wpa.doWidthoutWebpack();
+		await wpa.doWidthoutWebpack();
+		expect(wpa.filesUploaded.length).toBe(0);
 	});
 });
 

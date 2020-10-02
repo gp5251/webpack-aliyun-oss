@@ -25,6 +25,7 @@ Options
 - `accessKeySecret`: 阿里云的授权accessKeySecret
 - `bucket`: 上传到哪个bucket
 - `timeout`: oss超时设置，默认为30秒(30000)
+- `overwrite`: 是否覆盖oss同名文件。默认true
 - `verbose`: 是否显示上传日志，默认为true
 - `deletOrigin`: 上传完成是否删除原文件，默认false
 - `deleteEmptyDir`: 如果某个目录下的文件都上传到cdn了，是否删除此目录。deleteOrigin为true时候生效。默认false。

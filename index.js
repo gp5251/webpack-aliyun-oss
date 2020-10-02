@@ -1,13 +1,19 @@
 const fs = require('fs');
 const path = require('path');
-const oss = require('ali-oss');
-const co = require('co');
+const OSS = require('ali-oss');
 const globby = require("globby");
 const slash = require("slash");
 require('colors');
 
 class WebpackAliyunOss {
 	constructor(options) {
+		const {
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket
+		} = options;
+
 		this.config = Object.assign({
 			test: false,
 			verbose: true,
@@ -17,10 +23,21 @@ class WebpackAliyunOss {
 			deleteEmptyDir: false,
 			timeout: 30 * 1000,
 			setOssPath: null,
-			setHeaders: null
+			setHeaders: null,
+			overwrite: true
 		}, options);
 
 		this.configErrStr = this.checkOptions(options);
+
+		this.client = new OSS({
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket
+		})
+
+		this.filesUploaded = []
+		this.filesIgnored = []
 	}
 
 	apply(compiler) {
@@ -68,7 +85,7 @@ class WebpackAliyunOss {
 		}
 	}
 
-	upload(files, inWebpack, outputPath = '') {
+	async upload(files, inWebpack, outputPath = '') {
 		const {
 			dist,
 			buildRoot,
@@ -79,62 +96,68 @@ class WebpackAliyunOss {
 			timeout,
 			verbose,
 			test,
-
-			region,
-			accessKeyId,
-			accessKeySecret,
-			bucket
+			overwrite
 		} = this.config;
-
-		const client = oss({
-			region,
-			accessKeyId,
-			accessKeySecret,
-			bucket
-		});
 
 		files = files.map(file => path.resolve(file))
 
-		return new Promise((resolve, reject) => {
-			const o = this;
-			const splitToken = inWebpack
-													? '/' + outputPath.split('/').slice(-2).join('/') + '/'
-													: '/' + path.resolve(buildRoot).split('/').slice(-2).join('/') + '/';
+		this.filesUploaded = []
+		this.filesIgnored = []
 
-			let cloneFiles = files.slice.call(files);
-			co(function* () {
-				let filePath, i = 0, len = files.length;
-				while (i++ < len) {
-					filePath = files.shift();
+		const splitToken = inWebpack ?
+			'/' + outputPath.split('/').slice(-2).join('/') + '/' :
+			'/' + path.resolve(buildRoot).split('/').slice(-2).join('/') + '/';
 
-					let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (splitToken && filePath.split(splitToken)[1] || ''))));
+		try {
+			for (let filePath of files) {
+				let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (splitToken && filePath.split(splitToken)[1] || ''))));
 
-					if (test) {
-						console.log(filePath.blue, 'is ready to upload to ' + ossFilePath.green);
-						continue;
-					}
+				const fileExists = await this.fileExists(ossFilePath)
 
-					let result = yield client.put(ossFilePath, filePath, {
-						timeout,
-						headers: setHeaders && setHeaders(filePath) || {}
-					});
+				if (fileExists && !overwrite) {
+					this.filesIgnored.push(filePath)
+					continue
+				}
 
-					result.url = o.normalize(result.url);
+				if (test) {
+					console.log(filePath.blue, 'is ready to upload to ' + ossFilePath.green);
+					continue;
+				}
 
-					verbose && console.log(filePath.blue, '\nupload to ' + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
+				const headers = setHeaders && setHeaders(filePath) || {}
+				let result = await this.client.put(ossFilePath, filePath, {
+					timeout,
+					headers: !overwrite ? Object.assign(headers, { 'x-oss-forbid-overwrite': true }) : headers
+				})
 
-					if (deleteOrigin) {
-						fs.unlinkSync(filePath);
-						if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
-							o.deleteEmptyDir(filePath);
-					}
+				result.url = this.normalize(result.url);
+				this.filesUploaded.push(filePath)
+
+				verbose && console.log(filePath.blue, '\nupload to ' + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
+
+				if (deleteOrigin) {
+					fs.unlinkSync(filePath);
+					if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
+						this.deleteEmptyDir(filePath);
+				}
+			}
+		} catch (err) {
+			console.log(`failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`.red)
+		}
+
+		verbose && console.log('files ignored'.blue, this.filesIgnored);
+	}
+
+	fileExists(filepath) {
+		return this.client.get(filepath)
+			.then((result) => {
+				return result.res.status == 200
+			}).catch((e) => {
+				if (e.code == 'NoSuchKey') {
+					// console.log(filepath, 'not exist', e);
+					return false
 				}
 			})
-				.then(() => { resolve(cloneFiles) }, err => {
-					console.log(`failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`.red)
-					reject()
-				})
-		})
 	}
 
 	normalize(url) {
