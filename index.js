@@ -67,7 +67,7 @@ class WebpackAliyunOss {
 
 			if (files.length) {
                 const ret = await this.upload(files, true, outputPath);
-                if(ret.errorMsg) {
+                if(ret && ret.errorMsg) {
                     compilation.errors.push(new Error(ret.errorMsg));
                 }
                 return Promise.resolve();
@@ -87,7 +87,7 @@ class WebpackAliyunOss {
 
 		if (files.length) {
             const ret = await this.upload(files);
-            if(ret.errorMsg) {
+            if(ret && ret.errorMsg) {
                 return Promise.reject(new Error(ret.errorMsg));
             } else {
                 return Promise.resolve();
