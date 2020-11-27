@@ -15,6 +15,7 @@ class WebpackAliyunOss {
 		} = options;
 
 		this.config = Object.assign({
+			bail: false,
 			test: false,
 			verbose: true,
 			dist: '',
@@ -64,7 +65,13 @@ class WebpackAliyunOss {
 
 			const files = await globby(from);
 
-			if (files.length) return this.upload(files, true, outputPath);
+			if (files.length) {
+                const ret = await this.upload(files, true, outputPath);
+                if(ret.errorMsg) {
+                    compilation.errors.push(new Error(ret.errorMsg));
+                }
+                return Promise.resolve();
+            }
 			else {
 				verbose && console.log('no files to be uploaded');
 				return Promise.resolve();
@@ -78,7 +85,14 @@ class WebpackAliyunOss {
 		const { from, verbose } = this.config;
 		const files = await globby(from);
 
-		if (files.length) return await this.upload(files);
+		if (files.length) {
+            const ret = await this.upload(files);
+            if(ret.errorMsg) {
+                return Promise.reject(new Error(ret.errorMsg));
+            } else {
+                return Promise.resolve();
+            }
+        }
 		else {
 			verbose && console.log('no files to be uploaded');
 			return Promise.resolve('no files to be uploaded');
@@ -96,6 +110,7 @@ class WebpackAliyunOss {
 			timeout,
 			verbose,
 			test,
+			bail,
 			overwrite
 		} = this.config;
 
@@ -142,7 +157,11 @@ class WebpackAliyunOss {
 				}
 			}
 		} catch (err) {
-			console.log(`failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`.red)
+            const errorMsg = `failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`;
+            console.log(errorMsg.red);
+            if (bail) {
+                return { errorMsg };
+            }
 		}
 
 		verbose && this.filesIgnored.length && console.log('files ignored'.blue, this.filesIgnored);
