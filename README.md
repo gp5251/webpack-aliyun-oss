@@ -1,7 +1,7 @@
 # webpack-aliyun-oss
-A webpack(>=4) plugin to upload assets to aliyun oss, u can use it with or without webpack.
+A webpack(version>=4) plugin to upload assets to aliyun oss, u can use it with or without webpack.
 
-一个webpack(>=4)插件，上传资源到阿里云oss。可以作为webpack插件使用，也可独立使用(从0.1.0开始支持)
+一个webpack(version>=4)插件，上传资源到阿里云oss。可以作为webpack插件使用，也可独立使用(从0.1.0开始支持)
 
 - 默认按output.path (webpack.config.js) 下面的文件路径上传到oss，需要指定上传根目录(dist)。
 - 也可以通过`setOssPath`来配置不同的上传路径。
