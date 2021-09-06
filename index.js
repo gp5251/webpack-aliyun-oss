@@ -99,6 +99,16 @@ class WebpackAliyunOss {
 			overwrite
 		} = this.config;
 
+		if (test) {
+			console.log('');
+			console.log('Currently running in test mode. your files won\'t realy be uploaded.'.green.underline);
+			console.log('');
+		} else {
+			console.log('');
+			console.log('Your files will be uploaded very soon.'.green.underline);
+			console.log('');
+		}
+
 		files = files.map(file => path.resolve(file))
 
 		this.filesUploaded = []
