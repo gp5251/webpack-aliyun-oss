@@ -82,10 +82,15 @@ new WebpackAliyunOss({
     accessKeyId: 'your key',
     accessKeySecret: 'your secret',
     bucket: 'your bucket',
+
+    // 如果希望自定义上传路径，就传这个函数
+    // 否则按构建目录的结构上传
     setOssPath(filePath) {
       // filePath为当前文件路径。函数应该返回路径+文件名。如果返回/new/path/to/file.js，则最终上传路径为 path/in/alioss/new/path/to/file.js
       return '/new/path/to/file.js';
     },
+
+    // 如果想定义header就传
     setHeaders(filePath) {
       // some operations to filePath
       return {
