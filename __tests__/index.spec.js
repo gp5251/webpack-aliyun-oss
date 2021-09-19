@@ -58,7 +58,6 @@ describe('webpack-aliyun-oss', () => {
 			},
 			plugins: [wpa]
 		})
-
 		expect(re).toBe('done');
 	});
 

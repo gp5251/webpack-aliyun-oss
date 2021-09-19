@@ -1,3 +1,4 @@
 node_modules/
 .idea/
 oss.config.js
+upload.error.log

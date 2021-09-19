@@ -25,7 +25,9 @@ class WebpackAliyunOss {
 			setOssPath: null,			// 手动设置每个文件的上传路径
 			setHeaders: null,			// 设置头部
 			overwrite: true,			// 覆盖oss同名文件
-			bail: false					// 上传出错中断
+			bail: false,				// 出错中断上传
+			quitWpOnError: false,		// 出错中断打包
+			logToLocal: true			// 出错信息写入本地文件
 		}, options);
 
 		this.configErrStr = this.checkOptions(options);
@@ -52,7 +54,7 @@ class WebpackAliyunOss {
 	doWithWebpack(compiler) {
 		compiler.hooks.afterEmit.tapPromise('WebpackAliyunOss', async (compilation) => {
 			if (this.configErrStr) {
-				compilation.errors.push(new Error(this.configErrStr));
+				compilation.errors.push(this.configErrStr);
 				return Promise.resolve();
 			}
 
@@ -69,7 +71,7 @@ class WebpackAliyunOss {
 				try {
 					return this.upload(files, true, outputPath);
 				} catch (err) {
-					compilation.errors.push(new Error(err));
+					compilation.errors.push(err);
 					return Promise.reject(err);
 				}
 			} else {
@@ -80,7 +82,7 @@ class WebpackAliyunOss {
 	}
 
 	async doWidthoutWebpack() {
-		if (this.configErrStr) return Promise.reject(new Error(this.configErrStr));
+		if (this.configErrStr) return Promise.reject(this.configErrStr);
 
 		const { from, verbose } = this.config;
 		const files = await globby(from);
@@ -110,7 +112,9 @@ class WebpackAliyunOss {
 			verbose,
 			test,
 			overwrite,
-			bail
+			bail,
+			quitWpOnError,
+			logToLocal
 		} = this.config;
 
 		if (test) {
@@ -167,19 +171,33 @@ class WebpackAliyunOss {
 						this.deleteEmptyDir(filePath);
 				}
 			} catch (err) {
-				this.filesErrors.push({ file: filePath, err })
+				this.filesErrors.push({
+					file: filePath,
+					err: { code: err.code, message: err.message, name: err.name }
+				});
 
 				const errorMsg = `Failed to upload ${filePath.underline}: ` + `${err.name}-${err.code}: ${err.message}`.red;
 				console.log(errorMsg);
 
 				if (bail) {
-					console.log(' uploading stopped '.toUpperCase().bgRed.white, '\n');
-					throw new Error(`failed to upload ${filePath}: ${err.name}-${err.code}: ${err.message}`)
+					console.log(' UPLOADING STOPPED '.bgRed.white, '\n');
+					break
 				}
 			}
 		}
 
 		verbose && this.filesIgnored.length && console.log('files ignored'.blue, this.filesIgnored);
+
+		if (this.filesErrors.length) {
+			if (!bail)
+				console.log(' UPLOADING ENDED WITH ERRORS '.bgRed.white, '\n');
+
+			logToLocal
+				&& fs.writeFileSync(path.resolve('upload.error.log'), JSON.stringify(this.filesErrors, null, 2))
+
+			if (quitWpOnError || !inWebpack)
+				return Promise.reject(' UPLOADING ENDED WITH ERRORS ')
+		}
 	}
 
 	fileExists(filepath) {
