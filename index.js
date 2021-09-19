@@ -15,16 +15,17 @@ class WebpackAliyunOss {
 		} = options;
 
 		this.config = Object.assign({
-			test: false,
-			verbose: true,
-			dist: '',
-			buildRoot: '.',
-			deleteOrigin: false,
-			deleteEmptyDir: false,
-			timeout: 30 * 1000,
-			setOssPath: null,
-			setHeaders: null,
-			overwrite: true
+			test: false,				// 测试
+			verbose: true,				// 输出log
+			dist: '',					// oss目录
+			buildRoot: '.',				// 构建目录名
+			deleteOrigin: false,		// 是否删除源文件
+			deleteEmptyDir: false,		// 是否删除源文件目录， deleteOrigin 为true时有效
+			timeout: 30 * 1000,			// 超时时间
+			setOssPath: null,			// 手动设置每个文件的上传路径
+			setHeaders: null,			// 设置头部
+			overwrite: true,			// 覆盖oss同名文件
+			bail: false					// 上传出错中断
 		}, options);
 
 		this.configErrStr = this.checkOptions(options);
@@ -42,7 +43,7 @@ class WebpackAliyunOss {
 
 	apply(compiler) {
 		if (compiler) {
-			this.doWithWebpack(compiler);
+			return this.doWithWebpack(compiler);
 		} else {
 			return this.doWidthoutWebpack();
 		}
@@ -64,10 +65,16 @@ class WebpackAliyunOss {
 
 			const files = await globby(from);
 
-			if (files.length) return this.upload(files, true, outputPath);
-			else {
+			if (files.length) {
+				try {
+					return this.upload(files, true, outputPath);
+				} catch (err) {
+					compilation.errors.push(new Error(err));
+					return Promise.reject(err);
+				}
+			} else {
 				verbose && console.log('no files to be uploaded');
-				return Promise.resolve();
+				return Promise.resolve('no files to be uploaded');
 			}
 		});
 	}
@@ -78,7 +85,13 @@ class WebpackAliyunOss {
 		const { from, verbose } = this.config;
 		const files = await globby(from);
 
-		if (files.length) return await this.upload(files);
+		if (files.length) {
+			try {
+				return this.upload(files);
+			} catch (err) {
+				return Promise.reject(err);
+			}
+		}
 		else {
 			verbose && console.log('no files to be uploaded');
 			return Promise.resolve('no files to be uploaded');
@@ -96,7 +109,8 @@ class WebpackAliyunOss {
 			timeout,
 			verbose,
 			test,
-			overwrite
+			overwrite,
+			bail
 		} = this.config;
 
 		if (test) {
@@ -113,28 +127,30 @@ class WebpackAliyunOss {
 
 		this.filesUploaded = []
 		this.filesIgnored = []
+		this.filesErrors = []
 
 		const splitToken = inWebpack ?
 			'/' + outputPath.split('/').slice(-2).join('/') + '/' :
 			'/' + path.resolve(buildRoot).split('/').slice(-2).join('/') + '/';
 
-		try {
-			for (let filePath of files) {
-				let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (splitToken && filePath.split(splitToken)[1] || ''))));
+		for (let filePath of files) {
+			let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (splitToken && filePath.split(splitToken)[1] || ''))));
 
-				const fileExists = await this.fileExists(ossFilePath)
+			const fileExists = await this.fileExists(ossFilePath)
 
-				if (fileExists && !overwrite) {
-					this.filesIgnored.push(filePath)
-					continue
-				}
+			if (fileExists && !overwrite) {
+				this.filesIgnored.push(filePath)
+				continue
+			}
 
-				if (test) {
-					console.log(filePath.blue, 'is ready to upload to ' + ossFilePath.green);
-					continue;
-				}
+			if (test) {
+				console.log(filePath.blue, 'is ready to upload to ' + ossFilePath.green);
+				continue;
+			}
 
-				const headers = setHeaders && setHeaders(filePath) || {}
+			const headers = setHeaders && setHeaders(filePath) || {}
+
+			try {
 				let result = await this.client.put(ossFilePath, filePath, {
 					timeout,
 					headers: !overwrite ? Object.assign(headers, { 'x-oss-forbid-overwrite': true }) : headers
@@ -150,9 +166,17 @@ class WebpackAliyunOss {
 					if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
 						this.deleteEmptyDir(filePath);
 				}
+			} catch (err) {
+				this.filesErrors.push({ file: filePath, err })
+
+				const errorMsg = `Failed to upload ${filePath.underline}: ` + `${err.name}-${err.code}: ${err.message}`.red;
+				console.log(errorMsg);
+
+				if (bail) {
+					console.log(' uploading stopped '.toUpperCase().bgRed.white, '\n');
+					throw new Error(`failed to upload ${filePath}: ${err.name}-${err.code}: ${err.message}`)
+				}
 			}
-		} catch (err) {
-			console.log(`failed to upload to ali oss: ${err.name}-${err.code}: ${err.message}`.red)
 		}
 
 		verbose && this.filesIgnored.length && console.log('files ignored'.blue, this.filesIgnored);

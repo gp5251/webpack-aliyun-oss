@@ -3,8 +3,8 @@ A webpack(version>=4) plugin to upload assets to aliyun oss, u can use it with o
 
 一个webpack(version>=4)插件，上传资源到阿里云oss。可以作为webpack插件使用，也可独立使用(从0.1.0开始支持)
 
-- 默认按output.path (webpack.config.js) 下面的文件路径上传到oss，需要指定上传根目录(dist)。
-- 也可以通过`setOssPath`来配置不同的上传路径。
+- 默认按output.path (webpack.config.js) 目录下的文件路径上传，需要指定上传根目录(dist)。
+- 可以通过`setOssPath`来为每个文件配置不同的上传路径。
 - 独立使用时请通过`setOssPath`指定上传路径, 否则将上传到`dist`指定的路径下。
 
 Install
@@ -28,11 +28,12 @@ Options
 - `overwrite`: 是否覆盖oss同名文件。默认true
 - `verbose`: 是否显示上传日志，默认为true
 - `deletOrigin`: 上传完成是否删除原文件，默认false
-- `deleteEmptyDir`: 如果某个目录下的文件都上传到cdn了，是否删除此目录。deleteOrigin为true时候生效。默认false。
-- `setOssPath`: 自定义上传路径的函数。接收参数为当前文件路径。不传，或者所传函数返回false则按默认路径上传。(默认为output.path下文件路径)
+- `deleteEmptyDir`: 如果某个目录下的文件都上传过了，是否删除此目录。deleteOrigin为true时候生效。默认false。
+- `setOssPath`: 自定义每个文件上传路径的函数。接收参数为当前文件路径。不传，或者所传函数返回false则按默认路径上传。(默认为output.path下文件路径)
 - `setHeaders`: 配置headers的函数。接收参数为当前文件路径。不传，或者所传函数返回false则不设置header。
 - `buildRoot`: 构建目录名。如：build。独立使用时候需要。如果已传setOssPath可忽略。默认为空
 - `test`: 测试，仅显示要上传的文件，但是不执行上传操作。默认false
+- `bail`: 出错是否中断上传。默认false
 
 #### 注意: `accessKeyId, accessKeySecret` 很重要，注意保密!!!
 
