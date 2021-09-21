@@ -34,7 +34,7 @@ Options
 - `buildRoot`: 构建目录名。如：build。独立使用时候需要。如果已传setOssPath可忽略。默认为空
 - `test`: 测试，仅显示要上传的文件，但是不执行上传操作。默认false
 - `bail`: 出错是否中断上传。默认false
-- `logToLocal`: 出错信息写入本地upload.error.log。默认true
+- `logToLocal`: 出错信息写入本地upload.error.log。默认false
 - `quitWpOnError`: 出错是否中断打包。默认false
 
 #### 注意: `accessKeyId, accessKeySecret` 很重要，注意保密!!!

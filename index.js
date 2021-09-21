@@ -27,7 +27,7 @@ class WebpackAliyunOss {
 			overwrite: true,			// 覆盖oss同名文件
 			bail: false,				// 出错中断上传
 			quitWpOnError: false,		// 出错中断打包
-			logToLocal: true			// 出错信息写入本地文件
+			logToLocal: false			// 出错信息写入本地文件
 		}, options);
 
 		this.configErrStr = this.checkOptions(options);
@@ -205,9 +205,7 @@ class WebpackAliyunOss {
 			.then((result) => {
 				return result.res.status == 200
 			}).catch((e) => {
-				if (e.code == 'NoSuchKey') {
-					return false
-				}
+				if (e.code == 'NoSuchKey') return false
 			})
 	}
 
