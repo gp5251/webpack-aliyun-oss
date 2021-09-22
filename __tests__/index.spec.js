@@ -30,6 +30,19 @@ describe('webpack-aliyun-oss', () => {
 		expect(wpa.filesUploaded.length).toBe(3);
 	});
 
+	it('can handle error widthout webpack', async () => {
+		const wpa = createWpaInstance({
+			from: ['./dist/**', '!./dist/*.html'],
+			buildRoot: './dist',
+			accessKeyId: 'xxx'
+		}, false);
+		try {
+			await wpa.doWidthoutWebpack()
+		} catch (e) {
+			expect(wpa.filesErrors.length).toBeGreaterThan(1);
+		}
+	});
+
 	it('can stop uploading when encountered an error', async () => {
 		const wpa = createWpaInstance({
 			from: ['./dist/**', '!./dist/*.html'],

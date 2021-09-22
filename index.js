@@ -3,6 +3,7 @@ const path = require('path');
 const OSS = require('ali-oss');
 const globby = require("globby");
 const slash = require("slash");
+const ora = require('ora')();
 require('colors');
 
 class WebpackAliyunOss {
@@ -103,7 +104,6 @@ class WebpackAliyunOss {
 	async upload(files, inWebpack, outputPath = '') {
 		const {
 			dist,
-			buildRoot,
 			setHeaders,
 			deleteOrigin,
 			deleteEmptyDir,
@@ -127,18 +127,30 @@ class WebpackAliyunOss {
 			console.log('');
 		}
 
-		files = files.map(file => path.resolve(file))
+		files = files.map(file => ({
+			path: file,
+			fullPath: path.resolve(file)
+		}))
 
 		this.filesUploaded = []
 		this.filesIgnored = []
 		this.filesErrors = []
 
-		const splitToken = inWebpack ?
-			'/' + outputPath.split('/').slice(-2).join('/') + '/' :
-			'/' + path.resolve(buildRoot).split('/').slice(-2).join('/') + '/';
+		const basePath = this.getBasePath(inWebpack, outputPath)
 
-		for (let filePath of files) {
-			let ossFilePath = slash(path.join(dist, (setOssPath && setOssPath(filePath) || (splitToken && filePath.split(splitToken)[1] || ''))));
+		for (let file of files) {
+			const { fullPath: filePath, path: fPath } = file
+
+			let ossFilePath = slash(
+				path.join(
+					dist,
+					(
+						setOssPath && setOssPath(filePath)
+						|| basePath && filePath.split(basePath)[1]
+						|| ''
+					)
+				)
+			);
 
 			const fileExists = await this.fileExists(ossFilePath)
 
@@ -148,22 +160,24 @@ class WebpackAliyunOss {
 			}
 
 			if (test) {
-				console.log(filePath.blue, 'is ready to upload to ' + ossFilePath.green);
+				console.log(fPath.blue, 'is ready to upload to ' + ossFilePath.green);
 				continue;
 			}
 
 			const headers = setHeaders && setHeaders(filePath) || {}
 
 			try {
+				ora.start(`${fPath.underline} is uploading to ${ossFilePath.underline}`)
+
 				let result = await this.client.put(ossFilePath, filePath, {
 					timeout,
 					headers: !overwrite ? Object.assign(headers, { 'x-oss-forbid-overwrite': true }) : headers
 				})
 
 				result.url = this.normalize(result.url);
-				this.filesUploaded.push(filePath)
+				this.filesUploaded.push(fPath)
 
-				verbose && console.log(filePath.blue, '\nupload to ' + ossFilePath + ' success,'.green, 'cdn url =>', result.url.green);
+				verbose && ora.succeed(fPath.blue.underline + ' successfully uploaded, oss url => ' + result.url.green);
 
 				if (deleteOrigin) {
 					fs.unlinkSync(filePath);
@@ -172,12 +186,12 @@ class WebpackAliyunOss {
 				}
 			} catch (err) {
 				this.filesErrors.push({
-					file: filePath,
+					file: fPath,
 					err: { code: err.code, message: err.message, name: err.name }
 				});
 
-				const errorMsg = `Failed to upload ${filePath.underline}: ` + `${err.name}-${err.code}: ${err.message}`.red;
-				console.log(errorMsg);
+				const errorMsg = `Failed to upload ${fPath.underline}: ` + `${err.name}-${err.code}: ${err.message}`.red;
+				ora.fail(errorMsg);
 
 				if (bail) {
 					console.log(' UPLOADING STOPPED '.bgRed.white, '\n');
@@ -186,7 +200,7 @@ class WebpackAliyunOss {
 			}
 		}
 
-		verbose && this.filesIgnored.length && console.log('files ignored'.blue, this.filesIgnored);
+		verbose && this.filesIgnored.length && console.log('files ignored due to not overwrite'.blue, this.filesIgnored);
 
 		if (this.filesErrors.length) {
 			if (!bail)
@@ -198,6 +212,23 @@ class WebpackAliyunOss {
 			if (quitWpOnError || !inWebpack)
 				return Promise.reject(' UPLOADING ENDED WITH ERRORS ')
 		}
+	}
+
+	getBasePath(inWebpack, outputPath) {
+		if (this.config.setOssPath) return {};
+
+		let basePath = ''
+
+		if (inWebpack) {
+			if (path.isAbsolute(outputPath)) basePath = outputPath
+			else basePath = path.resolve(outputPath)
+		} else {
+			const { buildRoot } = this.config
+			if (path.isAbsolute(buildRoot)) basePath = buildRoot
+			else basePath = path.resolve(buildRoot)
+		}
+
+		return slash(basePath)
 	}
 
 	fileExists(filepath) {
