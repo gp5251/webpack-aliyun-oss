@@ -56,7 +56,7 @@ const webpackConfig = {
     bucket: 'your bucket',
 
     // 如果希望自定义上传路径，就传这个函数
-    // 否则按`buildRoot`下的文件结构上传
+    // 否则按 output.path (webpack.config.js) 目录下的文件路径上传
     setOssPath(filePath) {
       // filePath为当前文件路径。函数应该返回路径+文件名。
       // 如果返回/new/path/to/file.js，则最终上传路径为 /path/in/alioss/new/path/to/file.js
