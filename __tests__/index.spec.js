@@ -95,6 +95,7 @@ function createWpaInstance(params = {}, test = true) {
 		accessKeyId: 'your key',
 		accessKeySecret: 'your secret',
 		bucket: 'your bucket',
+		overwrite: true,
 		test
 	};
 
