@@ -1,7 +1,7 @@
 # webpack-aliyun-oss
 A webpack(version>=4) plugin to upload assets to aliyun oss, u can use it with or without webpack.
 
-一个webpack(version>=4)插件，上传资源到阿里云oss。可以作为webpack插件使用，也可独立使用(从0.1.0开始支持)
+一个webpack(version>=4)插件，上传资源到阿里云oss。可以作为webpack插件使用，也可独立使用
 
 - 以插件方式使用时，默认按output.path (webpack.config.js) 目录下的文件路径上传(保留原文件路径的层级结构)。
 - 独立使用时，按`buildRoot`的文件路径上传(保留原文件路径的层级结构)。
@@ -16,7 +16,7 @@ $ npm i webpack-aliyun-oss -D
 Options
 ------------------------
 
-- `from`: 上传哪些文件，支持类似gulp.src的glob方法，如'./build/**', 可以为glob字符串或者数组。
+- `from`: 上传哪些文件，支持glob方式，如'./build/**', 可以为glob字符串或者数组。
     - 作为插件使用时：可选。默认为output.path下所有的文件。
     - 独立使用时：必传
 - `dist`: 上传到oss哪个目录下，默认为oss根目录。可作为路径前缀使用。
@@ -25,8 +25,7 @@ Options
 - `accessKeySecret`: 阿里云的授权accessKeySecret
 - `bucket`: 上传到哪个bucket
 - `timeout`: oss超时设置，默认为30秒(30000)
-- `overwrite`: 是否覆盖oss同名文件。默认true
-- `verbose`: 是否显示上传日志，默认为true
+- `overwrite`: 是否覆盖oss同名文件。默认false
 - `deletOrigin`: 上传完成是否删除原文件，默认false
 - `deleteEmptyDir`: 如果某个目录下的文件都上传过了，是否删除此目录。`deleteOrigin`为true时候生效。默认false。
 - `setOssPath`: 自定义每个文件上传路径。接收参数为当前文件路径。不传，或者所传函数返回false则按默认方式上传。
@@ -35,7 +34,6 @@ Options
 - `test`: 测试，仅查看文件和上传路径，但是不执行上传操作。默认false
 - `bail`: 出错是否中断上传。默认false
 - `logToLocal`: 出错信息写入本地upload.error.log。默认false
-- `quitWpOnError`: 出错是否中断打包。默认false
 
 #### 注意: `accessKeyId, accessKeySecret` 很重要，注意保密!!!
 

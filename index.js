@@ -3,7 +3,7 @@ const path = require('path');
 const OSS = require('ali-oss');
 const globby = require("globby");
 const slash = require("slash");
-const ora = require('ora')();
+const Listr = require('listr');
 require('colors');
 
 class WebpackAliyunOss {
@@ -17,17 +17,17 @@ class WebpackAliyunOss {
 
 		this.config = Object.assign({
 			test: false,				// 测试
-			verbose: true,				// 输出log
+			// verbose: true,				// 输出log
 			dist: '',					// oss目录
 			buildRoot: '.',				// 构建目录名
 			deleteOrigin: false,		// 是否删除源文件
 			deleteEmptyDir: false,		// 是否删除源文件目录， deleteOrigin 为true时有效
 			timeout: 30 * 1000,			// 超时时间
+			parallel: 5,				// 并发数
 			setOssPath: null,			// 手动设置每个文件的上传路径
 			setHeaders: null,			// 设置头部
-			overwrite: true,			// 覆盖oss同名文件
+			overwrite: false,			// 覆盖oss同名文件
 			bail: false,				// 出错中断上传
-			quitWpOnError: false,		// 出错中断打包
 			logToLocal: false			// 出错信息写入本地文件
 		}, options);
 
@@ -62,8 +62,7 @@ class WebpackAliyunOss {
 			const outputPath = path.resolve(slash(compiler.options.output.path));
 
 			const {
-				from = outputPath + '/' + '**',
-				verbose
+				from = outputPath + '/' + '**'
 			} = this.config;
 
 			const files = await globby(from);
@@ -76,7 +75,7 @@ class WebpackAliyunOss {
 					return Promise.reject(err);
 				}
 			} else {
-				verbose && console.log('no files to be uploaded');
+				console.log('no files to be uploaded');
 				return Promise.resolve('no files to be uploaded');
 			}
 		});
@@ -85,7 +84,7 @@ class WebpackAliyunOss {
 	async doWidthoutWebpack() {
 		if (this.configErrStr) return Promise.reject(this.configErrStr);
 
-		const { from, verbose } = this.config;
+		const { from } = this.config;
 		const files = await globby(from);
 
 		if (files.length) {
@@ -96,7 +95,7 @@ class WebpackAliyunOss {
 			}
 		}
 		else {
-			verbose && console.log('no files to be uploaded');
+			console.log('no files to be uploaded');
 			return Promise.resolve('no files to be uploaded');
 		}
 	}
@@ -109,11 +108,10 @@ class WebpackAliyunOss {
 			deleteEmptyDir,
 			setOssPath,
 			timeout,
-			verbose,
 			test,
 			overwrite,
 			bail,
-			quitWpOnError,
+			parallel,
 			logToLocal
 		} = this.config;
 
@@ -138,7 +136,7 @@ class WebpackAliyunOss {
 
 		const basePath = this.getBasePath(inWebpack, outputPath)
 
-		for (let file of files) {
+		const _upload = async file => {
 			const { fullPath: filePath, path: fPath } = file
 
 			let ossFilePath = slash(
@@ -156,34 +154,20 @@ class WebpackAliyunOss {
 
 			if (fileExists && !overwrite) {
 				this.filesIgnored.push(filePath)
-				continue
+				return Promise.resolve(fPath.blue.underline + ' ready exists in oss, ignored');
 			}
 
 			if (test) {
-				console.log(fPath.blue, 'is ready to upload to ' + ossFilePath.green);
-				continue;
+				return Promise.resolve(fPath.blue.underline + ' is ready to upload to ' + ossFilePath.green.underline);
 			}
 
 			const headers = setHeaders && setHeaders(filePath) || {}
-
+			let result
 			try {
-				ora.start(`${fPath.underline} is uploading to ${ossFilePath.underline}`)
-
-				let result = await this.client.put(ossFilePath, filePath, {
+				result = await this.client.put(ossFilePath, filePath, {
 					timeout,
 					headers: !overwrite ? Object.assign(headers, { 'x-oss-forbid-overwrite': true }) : headers
 				})
-
-				result.url = this.normalize(result.url);
-				this.filesUploaded.push(fPath)
-
-				verbose && ora.succeed(fPath.blue.underline + ' successfully uploaded, oss url => ' + result.url.green);
-
-				if (deleteOrigin) {
-					fs.unlinkSync(filePath);
-					if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
-						this.deleteEmptyDir(filePath);
-				}
 			} catch (err) {
 				this.filesErrors.push({
 					file: fPath,
@@ -191,26 +175,58 @@ class WebpackAliyunOss {
 				});
 
 				const errorMsg = `Failed to upload ${fPath.underline}: ` + `${err.name}-${err.code}: ${err.message}`.red;
-				ora.fail(errorMsg);
-
-				if (bail) {
-					console.log(' UPLOADING STOPPED '.bgRed.white, '\n');
-					break
-				}
+				return Promise.reject(new Error(errorMsg))
 			}
+
+			result.url = this.normalize(result.url);
+			this.filesUploaded.push(fPath)
+
+			if (deleteOrigin) {
+				fs.unlinkSync(filePath);
+				if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
+					this.deleteEmptyDir(filePath);
+			}
+
+			return Promise.resolve(fPath.blue.underline + ' successfully uploaded, oss url => ' + result.url.green)
 		}
 
-		verbose && this.filesIgnored.length && console.log('files ignored due to not overwrite'.blue, this.filesIgnored);
+		let len = parallel
+		const addTask = () => {
+			if (len < files.length) {
+				tasks.add(createTask(files[len]))
+				len++
+			}
+		}
+		const createTask = file => ({
+			title: `uploading ${file.path.underline}`,
+			task(_, task) {
+				return _upload(file)
+					.then(msg => {
+						task.title = msg;
+						addTask()
+					})
+					.catch(e => {
+						if (!bail) addTask()
+						return Promise.reject(e)
+					})
+			}
+		});
+		const tasks = new Listr(
+			files.slice(0, len).map(createTask),
+			{
+				exitOnError: bail,
+				concurrent: parallel
+			})
+
+		await tasks.run().catch(() => { });
+
+		// this.filesIgnored.length && console.log('files ignored due to not overwrite'.blue, this.filesIgnored);
 
 		if (this.filesErrors.length) {
-			if (!bail)
-				console.log(' UPLOADING ENDED WITH ERRORS '.bgRed.white, '\n');
+			console.log(' UPLOAD ENDED WITH ERRORS '.bgRed.white, '\n');
+			logToLocal && fs.writeFileSync(path.resolve('upload.error.log'), JSON.stringify(this.filesErrors, null, 2))
 
-			logToLocal
-				&& fs.writeFileSync(path.resolve('upload.error.log'), JSON.stringify(this.filesErrors, null, 2))
-
-			if (quitWpOnError || !inWebpack)
-				return Promise.reject(' UPLOADING ENDED WITH ERRORS ')
+			return Promise.reject(' UPLOAD ENDED WITH ERRORS ')
 		}
 	}
 
@@ -255,15 +271,7 @@ class WebpackAliyunOss {
 			fs.readdir(dirname, (err, files) => {
 				if (err) console.error(err);
 				else {
-					if (!files.length) {
-						fs.rmdir(dirname, (err) => {
-							if (err) {
-								console.log(err.red);
-							} else {
-								this.config.verbose && console.log('empty directory deleted'.green, dirname)
-							}
-						})
-					}
+					if (!files.length) fs.rmdir(dirname, () => { })
 				}
 			})
 		}
