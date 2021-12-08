@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const OSS = require('ali-oss');
 const globby = require("globby");
-const slash = require("slash");
 const Listr = require('listr');
 require('colors');
 
@@ -17,11 +16,9 @@ class WebpackAliyunOss {
 
 		this.config = Object.assign({
 			test: false,				// 测试
-			// verbose: true,				// 输出log
 			dist: '',					// oss目录
 			buildRoot: '.',				// 构建目录名
 			deleteOrigin: false,		// 是否删除源文件
-			deleteEmptyDir: false,		// 是否删除源文件目录， deleteOrigin 为true时有效
 			timeout: 30 * 1000,			// 超时时间
 			parallel: 5,				// 并发数
 			setOssPath: null,			// 手动设置每个文件的上传路径
@@ -59,10 +56,10 @@ class WebpackAliyunOss {
 				return Promise.resolve();
 			}
 
-			const outputPath = path.resolve(slash(compiler.options.output.path));
+			const outputPath = path.resolve(this.slash(compiler.options.output.path));
 
 			const {
-				from = outputPath + '/' + '**'
+				from = outputPath + '/**'
 			} = this.config;
 
 			const files = await globby(from);
@@ -105,7 +102,6 @@ class WebpackAliyunOss {
 			dist,
 			setHeaders,
 			deleteOrigin,
-			deleteEmptyDir,
 			setOssPath,
 			timeout,
 			test,
@@ -139,7 +135,7 @@ class WebpackAliyunOss {
 		const _upload = async file => {
 			const { fullPath: filePath, path: fPath } = file
 
-			let ossFilePath = slash(
+			let ossFilePath = this.slash(
 				path.join(
 					dist,
 					(
@@ -183,8 +179,7 @@ class WebpackAliyunOss {
 
 			if (deleteOrigin) {
 				fs.unlinkSync(filePath);
-				if (deleteEmptyDir && files.every(f => f.indexOf(path.dirname(filePath)) === -1))
-					this.deleteEmptyDir(filePath);
+				this.deleteEmptyDir(filePath);
 			}
 
 			return Promise.resolve(fPath.blue.underline + ' successfully uploaded, oss url => ' + result.url.green)
@@ -231,7 +226,7 @@ class WebpackAliyunOss {
 	}
 
 	getBasePath(inWebpack, outputPath) {
-		if (this.config.setOssPath) return {};
+		if (this.config.setOssPath) return '';
 
 		let basePath = ''
 
@@ -244,7 +239,7 @@ class WebpackAliyunOss {
 			else basePath = path.resolve(buildRoot)
 		}
 
-		return slash(basePath)
+		return this.slash(basePath)
 	}
 
 	fileExists(filepath) {
@@ -258,11 +253,22 @@ class WebpackAliyunOss {
 
 	normalize(url) {
 		const tmpArr = url.split(/\/{2,}/);
-		if (tmpArr.length > 2) {
+		if (tmpArr.length >= 2) {
 			const [protocol, ...rest] = tmpArr;
 			url = protocol + '//' + rest.join('/');
 		}
 		return url;
+	}
+
+	slash(path) {
+		const isExtendedLengthPath = /^\\\\\?\\/.test(path);
+		// const hasNonAscii = /[^\u0000-\u0080]+/.test(path);
+
+		if (isExtendedLengthPath) {
+			return path;
+		}
+
+		return path.replace(/\\/g, '/');
 	}
 
 	deleteEmptyDir(filePath) {

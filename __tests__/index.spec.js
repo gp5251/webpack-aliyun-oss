@@ -21,13 +21,19 @@ describe('webpack-aliyun-oss', () => {
 		expect(re).toBe('http://a.com/b/c')
 	});
 
+	it('convert backwards-slash paths to forward slash paths', () => {
+		const wpa = createWpaInstance();
+		expect(wpa.slash('c:/aaaa\\bbbb')).toBe('c:/aaaa/bbbb');
+		expect(wpa.slash('c:\\aaaa\\bbbb')).toBe('c:/aaaa/bbbb');
+	});
+
 	it('can upload files widthout webpack', async () => {
 		const wpa = createWpaInstance({
 			from: ['./dist/**', '!./dist/*.html'], 
 			buildRoot: './dist'
 		}, false);
 		await wpa.doWidthoutWebpack();
-		expect(wpa.filesUploaded.length).toBe(3);
+		expect(wpa.filesUploaded.length).toBe(4);
 	});
 
 	it('can handle error widthout webpack', async () => {
@@ -60,7 +66,8 @@ describe('webpack-aliyun-oss', () => {
 
 	it('can upload files in webpack', async () => {
 		const wpa = createWpaInstance({
-			from: ['./dist/**', '!./dist/*.(html|txt)']
+			from: ['./dist/**', '!./dist/*.(html|txt)'],
+			buildRoot: './dist',
 		}, false);
 
 		const re = await runWebapck({
