@@ -89,7 +89,7 @@ describe('webpack-aliyun-oss', () => {
 		}, false);
 		await wpa.doWidthoutWebpack();
 		await wpa.doWidthoutWebpack();
-		expect(wpa.filesUploaded.length).toBe(0);
+		expect(wpa.filesIgnored.length).toBeGreaterThan(0);
 	});
 });
 
