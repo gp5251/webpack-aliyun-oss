@@ -66,7 +66,9 @@ class WebpackAliyunOss {
 
 			if (files.length) {
 				try {
-					return this.upload(files, true, outputPath);
+					await this.upload(files, true, outputPath);
+					console.log('');
+					console.log(' All files uploaded successfully '.bgGreen.bold.white);
 				} catch (err) {
 					compilation.errors.push(err);
 					return Promise.reject(err);
@@ -86,7 +88,9 @@ class WebpackAliyunOss {
 
 		if (files.length) {
 			try {
-				return this.upload(files);
+				await this.upload(files);
+				console.log('');
+				console.log(' All files uploaded successfully '.bgGreen.bold.white);
 			} catch (err) {
 				return Promise.reject(err);
 			}
@@ -150,18 +154,26 @@ class WebpackAliyunOss {
 				return Promise.resolve(fPath.blue.underline + ' is ready to upload to ' + ossFilePath.green.underline);
 			}
 
+			const fileExists = await this.fileExists(ossFilePath)
+
+			if (fileExists && !overwrite) {
+				this.filesIgnored.push(filePath)
+				return Promise.resolve(fPath.blue.underline + ' ready exists in oss, ignored');
+			}
+
 			const headers = setHeaders && setHeaders(filePath) || {}
 			let result
 			try {
 				result = await this.client.put(ossFilePath, filePath, {
 					timeout,
-					headers: !overwrite ? Object.assign(headers, { 'x-oss-forbid-overwrite': true }) : headers
+					// headers: !overwrite ? Object.assign(headers, { 'x-oss-forbid-overwrite': true }) : headers
+					headers
 				})
 			} catch (err) {
-				if (err.name === 'FileAlreadyExistsError') {
-					this.filesIgnored.push(filePath)
-					return Promise.resolve(fPath.blue.underline + ' ready exists in oss, ignored');
-				}
+				// if (err.name === 'FileAlreadyExistsError') {
+				// 	this.filesIgnored.push(filePath)
+				// 	return Promise.resolve(fPath.blue.underline + ' ready exists in oss, ignored');
+				// }
 
 				this.filesErrors.push({
 					file: fPath,
@@ -240,15 +252,15 @@ class WebpackAliyunOss {
 		return this.slash(basePath)
 	}
 
-	// fileExists(filepath) {
-	// 	// return this.client.get(filepath)
-	// 	return this.client.head(filepath)
-	// 		.then((result) => {
-	// 			return result.res.status == 200
-	// 		}).catch((e) => {
-	// 			if (e.code == 'NoSuchKey') return false
-	// 		})
-	// }
+	fileExists(filepath) {
+		// return this.client.get(filepath)
+		return this.client.head(filepath)
+			.then((result) => {
+				return result.res.status == 200
+			}).catch((e) => {
+				if (e.code == 'NoSuchKey') return false
+			})
+	}
 
 	normalize(url) {
 		const tmpArr = url.split(/\/{2,}/);
