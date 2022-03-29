@@ -154,11 +154,12 @@ class WebpackAliyunOss {
 				return Promise.resolve(fPath.blue.underline + ' is ready to upload to ' + ossFilePath.green.underline);
 			}
 
-			const fileExists = await this.fileExists(ossFilePath)
-
-			if (fileExists && !overwrite) {
-				this.filesIgnored.push(filePath)
-				return Promise.resolve(fPath.blue.underline + ' ready exists in oss, ignored');
+			if (!overwrite) {
+				const fileExists = await this.fileExists(ossFilePath)
+				if (fileExists) {
+					this.filesIgnored.push(filePath)
+					return Promise.resolve(fPath.blue.underline + ' ready exists in oss, ignored');
+				}
 			}
 
 			const headers = setHeaders && setHeaders(filePath) || {}
