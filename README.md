@@ -27,7 +27,7 @@ Options
 - `timeout`: oss超时设置，默认为30秒(30000)
 - `overwrite`: 是否覆盖oss同名文件。默认false
 - `parallel`: 并发上传个数。默认5
-- `deletOrigin`: 上传完成是否删除原文件，默认false
+- `deleteOrigin`: 上传完成是否删除原文件，默认false
 - `deleteEmptyDir`: 如果某个目录下的文件都上传过了，是否删除此目录。`deleteOrigin`为true时候生效。默认false。
 - `setOssPath`: 自定义每个文件上传路径。接收参数为当前文件路径。不传，或者所传函数返回false则按默认方式上传。
 - `setHeaders`: 配置headers的函数。接收参数为当前文件路径。不传，或者所传函数返回false则不设置header。
