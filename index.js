@@ -7,13 +7,6 @@ require('colors');
 
 class WebpackAliyunOss {
 	constructor(options) {
-		const {
-			region,
-			accessKeyId,
-			accessKeySecret,
-			bucket
-		} = options;
-
 		this.config = Object.assign({
 			test: false,				// 测试
 			dist: '',					// oss目录
@@ -29,14 +22,7 @@ class WebpackAliyunOss {
 		}, options);
 
 		this.configErrStr = this.checkOptions(options);
-
-		this.client = new OSS({
-			region,
-			accessKeyId,
-			accessKeySecret,
-			bucket
-		})
-
+		this.client = new OSS(options);
 		this.filesUploaded = []
 		this.filesIgnored = []
 	}
@@ -62,7 +48,7 @@ class WebpackAliyunOss {
 				from = outputPath + '/**'
 			} = this.config;
 
-			const files = await globby(from);
+			const files = await globby(from, {dot: true});
 
 			if (files.length) {
 				try {
