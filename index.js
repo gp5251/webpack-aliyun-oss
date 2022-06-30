@@ -7,6 +7,14 @@ require('colors');
 
 class WebpackAliyunOss {
 	constructor(options) {
+		const {
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket,
+			ossOptions = {}
+		} = options;
+
 		this.config = Object.assign({
 			test: false,				// 测试
 			dist: '',					// oss目录
@@ -22,7 +30,14 @@ class WebpackAliyunOss {
 		}, options);
 
 		this.configErrStr = this.checkOptions(options);
-		this.client = new OSS(options);
+		this.client = new OSS({
+			region,
+			accessKeyId,
+			accessKeySecret,
+			bucket,
+			...ossOptions
+		});
+
 		this.filesUploaded = []
 		this.filesIgnored = []
 	}
@@ -282,20 +297,21 @@ class WebpackAliyunOss {
 	}
 
 	checkOptions(options = {}) {
-		const {
+		let {
 			from,
 			region,
 			accessKeyId,
 			accessKeySecret,
-			bucket
+			bucket,
+			ossOptions
 		} = options;
 
 		let errStr = '';
 
-		if (!region) errStr += '\nregion not specified';
-		if (!accessKeyId) errStr += '\naccessKeyId not specified';
-		if (!accessKeySecret) errStr += '\naccessKeySecret not specified';
-		if (!bucket) errStr += '\nbucket not specified';
+		if (!region && !ossOptions.region) errStr += '\nregion not specified';
+		if (!accessKeyId && !ossOptions.accessKeyId) errStr += '\naccessKeyId not specified';
+		if (!accessKeySecret && !ossOptions.accessKeySecret) errStr += '\naccessKeySecret not specified';
+		if (!bucket && !ossOptions.bucket) errStr += '\nbucket not specified';
 
 		if (Array.isArray(from)) {
 			if (from.some(g => typeof g !== 'string')) errStr += '\neach item in from should be a glob string';

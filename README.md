@@ -17,13 +17,16 @@ Options
 ------------------------
 
 - `from`: 上传哪些文件，支持glob方式，如'./build/**', 可以为glob字符串或者数组。
-    - 作为插件使用时：可选。默认为output.path下所有的文件。
-    - 独立使用时：必传
+  - 作为插件使用时：可选。默认为output.path下所有的文件。
+  - 独立使用时：必传
 - `dist`: 上传到oss哪个目录下，默认为oss根目录。可作为路径前缀使用。
-- `region`: 阿里云上传区域
-- `accessKeyId`: 阿里云的授权accessKeyId
-- `accessKeySecret`: 阿里云的授权accessKeySecret
-- `bucket`: 上传到哪个bucket
+- `ossOptions`: OSS相关参数配置。
+  - `region`: 阿里云上传区域
+  - `accessKeyId`: 阿里云的授权accessKeyId
+  - `accessKeySecret`: 阿里云的授权accessKeySecret
+  - `bucket`: 上传到哪个bucket
+  - `stsToken`: security-token, 可选
+  - 以及oss其他可能的参数都可以在这里配置
 - `timeout`: oss超时设置，默认为30秒(30000)
 - `overwrite`: 是否覆盖oss同名文件。默认false
 - `parallel`: 并发上传个数。默认5
