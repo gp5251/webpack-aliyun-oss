@@ -51,11 +51,13 @@ const webpackConfig = {
   plugins: [new WebpackAliyunOss({
     from: ['./build/**', '!./build/**/*.html'], // build目录下除html之外的所有文件
     dist: '/path/in/alioss', // oss上传目录
-    region: 'your region',
-    accessKeyId: 'your key',
-    accessKeySecret: 'your secret',
-    bucket: 'your bucket',
-    stsToken: '<security-token>', // 可选
+    ossOptions: {
+      region: 'your region',
+      accessKeyId: 'your key',
+      accessKeySecret: 'your secret',
+      bucket: 'your bucket',
+      stsToken: '<security-token>', // 可选
+    },
 
     // 如果希望自定义上传路径，就传这个函数
     // 否则按 output.path (webpack.config.js) 目录下的文件路径上传
@@ -84,11 +86,13 @@ new WebpackAliyunOss({
     from: ['./build/**', '!./build/**/*.html'],
     dist: '/path/in/alioss',
     buildRoot: 'build', // 构建目录，如果已传setOssPath，可忽略
-    region: 'your region',
-    accessKeyId: 'your key',
-    accessKeySecret: 'your secret',
-    bucket: 'your bucket',
-    stsToken: '<security-token>', // 可选
+    ossOptions: {
+      region: 'your region',
+      accessKeyId: 'your key',
+      accessKeySecret: 'your secret',
+      bucket: 'your bucket',
+      stsToken: '<security-token>', // 可选
+    },
 
     // 如果希望自定义上传路径，就传这个函数
     // 否则按`buildRoot`下的文件结构上传

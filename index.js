@@ -303,7 +303,7 @@ class WebpackAliyunOss {
 			accessKeyId,
 			accessKeySecret,
 			bucket,
-			ossOptions
+			ossOptions = {}
 		} = options;
 
 		let errStr = '';
